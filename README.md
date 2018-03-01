@@ -5,14 +5,102 @@
 
 [![js-standard-style](https://cdn.rawgit.com/feross/standard/master/badge.svg)](https://github.com/feross/standard)
 
-This library bundles different components for lower-level peer-to-peer connection and message exchange:
 
-- Distributed Peer Table (DPT) / Node Discovery
-- RLPx Transport Protocol
-- Ethereum Wire Protocol (ETH)
+# Использование Permissioning smart-contract для ограничения доступа к Secret Store
+[sandbox/ss-acl-permission](https://github.com/mira-lab/SmartMiraStore/ss-acl-permission.js) 
+Для упрощения понимания функционирования решения прилагается набор тестов Permissioning 
+(в каждом подпункте описания архитектуры в конце указываю строку запуска соотвествующего теста).
 
-The library is based on [ethereumjs/node-devp2p](https://github.com/ethereumjs/node-devp2p) as well
-as other sub-libraries (``node-*`` named) (all outdated).
+При этом результаты сохраняются в файлы на диск, поэтому след.тест можно вызывать сразу, 
+параметры подгрузятся полностью автоматически (можно не указывать в параметрах вызова)
+
+Смарт-контракт и его ABI используемые в решении:
+- [permissionning contract](https://github.com/mira-lab/SmartMiraStore/contracts/permission.sol) for Secret Store
+- [contract ABI](https://github.com/mira-lab/SmartMiraStore/contracts/permissioning.json)
+
+Решение использует:
+ранее написанную библиотеку [lib/paritySecretStore](https://github.com/mira-lab/SmartMiraStore/lib/paritySecretStore/index.js),
+операции с blockchain Etherium [web3](https://github.com/ethereum/web3.js),
+и другие node_modules & sub-libraries.
+
+## Тестовое решение для [SecretStore от Parity](https://github.com/svyatonik/sstore_test)
+Поскольку проект чисто "девелоперский", и readme.md отсутствует, то привожу краткую инструкцию для зауска.
+
+1) Собрать исполняемый файл parity под Вашу систему (см. ниже). 
+После сборки копируете исполняемый файл командой из консоли cp ~/parity/target/release/parity ~/sstore_test в корень тестового проекта.
+
+2) Запустить все три ноды на локальной машине скриптом из корня проекта ./start.sh
+Остановка выполняется скриптом ./stop.sh который просто убивает все процессы по шаблону parity*
+
+3) Зайти в [веб-интерфейс Parity](http://127.0.0.1:8180/) выбрать второй справа пункт меню Contracts и внести код контракта
+[permissionning contract](https://github.com/mira-lab/SmartMiraStore/contracts/permission.sol) 
+Скомпилировать и задеплоть кнопками справа. В результате деплоя получается ETH-адрес, байт код и ABI контракта.
+
+4) Перейти на домашнюю страницу клиента (слева вверху иконка домика). 
+Настроить адрес ACL контракта в системе при помощи DApps-приложения "Registry". Для этого сначала резервируется имя secretstore_acl_checker ,
+затем регистрируете под этим именем адрес полученный в п.2 
+
+5) Отредактировать все 3 файла конфигурации dev_ss{1,2,3}.toml, добавив строки
+disable_acl_check = false
+service_contract = "registry"
+   
+Таким образом права на доступ к SecretStore начинают управляться ACL smart-contract (реально работает только в сборках Parity начиная с 1.10), а для его lookup будет использоваться
+Contract Name Registry (обычное предустановленное DApps-приложение начиная с Parity 1.4)
+
+6) Перезапускаете проект (./stop.sh + ./start.sh)
+
+
+## Сборка исполняемого файла парити под Вашу систему
+Краткая [инструкция](https://wiki.parity.io/Setup#building-from-source) по сборке 
+
+1) Устанавливаем rust или обновляем до самой свежей версии (обновление - это деинсталлировать все и поставить по новой - см.описание RUST)
+curl https://sh.rustup.rs -sSf | sh
+
+2) After this, you can use the rustup command to also install beta or nightly channels for Rust and Cargo.
+Запустите менеджер установки rustup, выберите пункт 2 для настройки дополнительных каналов обновления (beta or nightly) и корректного выбора target platform.
+Затем подтвердите выбор и выполните установку по пункту 1.
+
+3) Склонируйте [репозиторий](https://github.com/paritytech/parity/tree/beta) непосредственно от Parity.
+Я выбираю всегда ветку beta, хотя на момент написания этого readme как раз обновился stable.
+
+4) После стабильной v.1.9.3 все следующие версии Parity client не позволяют компилировать и деплоить контракт, пишут про невозможность исполнения inline-js scripts и политику безопасности.
+Я добавил локально генерацию cross-origin заголовка прямо в код, игры с manifest.json и т.д. не помогли.
+  dapps/src/handlers/mod.rs: 78
+  let eval = " 'unsafe-eval'";
+Т.е. заголовок добавляем всегда, а не как было изначально зависимо от флага allow_js_eval, который непонятно где устанавливается.
+
+5) Запускаем сборку кода, обязательно с включенной опцией --secretstore
+  cargo build --features secretstore --release
+  
+  
+## Публичные методы доступные в смарт-контракте
+
+function addKeyAccess(address user, bytes32 document, bytes32 pin) public returns (bool) {}
+
+function rmKeyAccess(address user, bytes32 document, bytes32 pin) public returns (bool) {}
+
+function checkKeyAccess(address user, bytes32 document, bytes32 pin) public returns (bool) {}
+
+function whoAccess(bytes32 document) public returns (address) {}
+    
+function permittedCount(bytes32 document) public returns (uint256) {}
+    
+function checkPermissions(address user, bytes32 document) public constant returns (bool) {}
+
+
+## Описание технического background и архитектуры решения
+
+1) Система работает на базе кошелька Copay, функционирует в сети BTC. 
+Имеем Copay HD (master private key), для каждого МираБокса с помощью библиотеки создается derived_private_key.
+
+2) Создаем Parity account от такого же private key, получаем публичный ключ и хеш от него соотвественно адрес в сети ETH.
+[node ss-acl-permission.js g] - сохраняет приватный ключ first.privkey и адрес first.eth 
+
+3) Делаем запрос к локальной ноде Secret store для шифрования файла (encode), подписанный key А.
+В результате получаем documentId, encrypted document. 
+Задаем пин, даем права account_address_A (user A) на доступ 
+Проверяем что user A имеет доступ к SecretStore по данному documentId, а любой другой пользователь (например user B) нет.
+
 
 ## Run/Build
 
