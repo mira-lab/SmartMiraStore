@@ -53,7 +53,7 @@ Contract Name Registry (обычное предустановленное DApps-
 ## Сборка исполняемого файла парити под Вашу систему
 Краткая [инструкция](https://wiki.parity.io/Setup#building-from-source) по сборке 
 
-1) Устанавливаем rust или обновляем до самой свежей версии (обновление это деинсталлировать все и поставить по новой - см.описание RUST)
+1) Устанавливаем rust или обновляем до самой свежей версии (обновление - это деинсталлировать все и поставить по новой - см.описание RUST)
 curl https://sh.rustup.rs -sSf | sh
 
 2) After this, you can use the rustup command to also install beta or nightly channels for Rust and Cargo.
