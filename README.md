@@ -1,12 +1,10 @@
-# SmartMiraStore
-
 [![NPM Package](https://img.shields.io/npm/v/ethereumjs-devp2p.svg?style=flat-square)](https://www.npmjs.org/package/ethereumjs-devp2p)
 [![Build Status](https://travis-ci.org/ethereumjs/ethereumjs-devp2p.svg?branch=master)](https://travis-ci.org/ethereumjs/ethereumjs-devp2p)
 
 [![js-standard-style](https://cdn.rawgit.com/feross/standard/master/badge.svg)](https://github.com/feross/standard)
 
 
-# Использование Permissioning smart-contract для ограничения доступа к Secret Store
+# SmartMiraStore - Использование Permissioning smart-contract для ограничения доступа к Secret Store
 [sandbox/ss-acl-permission](https://github.com/mira-lab/SmartMiraStore/ss-acl-permission.js) 
 Для упрощения понимания функционирования решения прилагается набор тестов Permissioning 
 (в каждом подпункте описания архитектуры в конце указываю строку запуска соотвествующего теста).
@@ -24,7 +22,7 @@
 и другие node_modules & sub-libraries.
 
 ## Тестовое решение для [SecretStore от Parity](https://github.com/svyatonik/sstore_test)
-Поскольку проект чисто "девелоперский", и readme.md отсутствует, то привожу краткую инструкцию для зауска.
+Поскольку проект чисто "девелоперский", и readme.md отсутствует, то привожу краткую инструкцию для запуска.
 
 1) Собрать исполняемый файл parity под Вашу систему (см. ниже). 
 После сборки копируете исполняемый файл командой из консоли cp ~/parity/target/release/parity ~/sstore_test в корень тестового проекта.
@@ -100,6 +98,12 @@ function checkPermissions(address user, bytes32 document) public constant return
 В результате получаем documentId, encrypted document. 
 Задаем пин, даем права account_address_A (user A) на доступ 
 Проверяем что user A имеет доступ к SecretStore по данному documentId, а любой другой пользователь (например user B) нет.
+
+
+
+============================================================
+===   ALL BELOW FROM EARLY PROJECT, WILL BE REFACTORED   ===
+============================================================
 
 
 ## Run/Build
